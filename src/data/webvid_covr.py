@@ -257,6 +257,13 @@ class WebVidCoVRDataset(Dataset):
             iterate = "idx"
             self.df["idx"] = self.df.index
         self.iterate = iterate
+
+        # 核心硬编码逻辑：仅训练集截取 256*5=1280 个样本
+        if self.split == "train":
+            # 先截断df，再处理后续映射关系，避免索引错位
+            self.df = self.df.iloc[:256].reset_index(drop=True)
+            print_dist(f"[硬编码截断] 训练集样本数: {len(self.df)}")
+
         self.target_txts = self.df[iterate].unique()
         assert (
             iterate in self.df.columns
@@ -310,20 +317,18 @@ class WebVidCoVRDataset(Dataset):
             else:
                 raise ValueError(f"Invalid model: {txt2emb_pth}")
             assert txt2emb_pth.exists(), f"txt2emb does not exist: {txt2emb_pth}. Please compute them with: python tools/embs/save_{model}_embs_txts.py {self.annotation_pth} {self.emb_dir}"
-            txt2emb_pth = self.emb_dir / f"txt2_{self.annotation_pth.stem}.pth"
-            if txt2emb_pth.exists():
-                self.txt2emb = torch.load(txt2emb_pth, weights_only=True)
-                assert len(self.txt2emb["texts"]) == len(
-                    self.txt2emb["feats"]
-                ), "txt2emb is not valid"
-                self.txt2emb = {
-                    txt: feat
-                    for txt, feat in zip(self.txt2emb["texts"], self.txt2emb["feats"])
-                }
-                txt2s = set(self.df["txt2"].unique().tolist())
-                assert txt2s.issubset(
-                    set(self.txt2emb.keys())
-                ), "txt2emb does not contain all txt2's"
+            self.txt2emb = torch.load(txt2emb_pth, weights_only=True)
+            assert len(self.txt2emb["texts"]) == len(
+                self.txt2emb["feats"]
+            ), "txt2emb is not valid"
+            self.txt2emb = {
+                txt: feat
+                for txt, feat in zip(self.txt2emb["texts"], self.txt2emb["feats"])
+            }
+            txt2s = set(self.df["txt2"].unique().tolist())
+            assert txt2s.issubset(
+                set(self.txt2emb.keys())
+            ), "txt2emb does not contain all txt2's"
 
     def __len__(self) -> int:
         return len(self.target_txts)

@@ -261,9 +261,14 @@ class WebVidCoVRDataset(Dataset):
         # 核心硬编码逻辑：仅训练集截取 256*5=1280 个样本
         if self.split == "train":
             # 先截断df，再处理后续映射关系，避免索引错位
-            self.df = self.df.iloc[:256*5].reset_index(drop=True)
+            self.df = self.df.iloc[:256].reset_index(drop=True)
             print_dist(f"[硬编码截断] 训练集样本数: {len(self.df)}")
 
+        if self.split == "test":
+            # 先截断df，再处理后续映射关系，避免索引错位
+            self.df = self.df.iloc[:256*2].reset_index(drop=True)
+            print_dist(f"[硬编码截断] 测试集样本数: {len(self.df)}")
+            
         self.target_txts = self.df[iterate].unique()
         assert (
             iterate in self.df.columns

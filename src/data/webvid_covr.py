@@ -392,4 +392,4 @@ class WebVidCoVRDataset(Dataset):
             )
 
         return return_dict
-//256*5样本
+#256*5样本
